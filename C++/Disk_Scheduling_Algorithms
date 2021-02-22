@@ -1,0 +1,149 @@
+/*DISK SCHEDULING ALGORITHMS 
+ An illustration of implementation of some different disk scheduling algorithms 
+ FCFS, SCAN, and C-SCAN algorithms
+ Efficiency: (FCFS)<(SCAN)<(C-SCAN) */
+
+#include "pch.h"
+#include <iostream>
+#include <stdlib.h>
+
+using namespace std;
+
+#define NUM_CYLINDERS 5000
+#define NUM_REQUESTS 1000
+int iRequest[NUM_REQUESTS]; //array of cylinder requests for all algorithms
+int iRequest_sorted[NUM_REQUESTS]; //array of sorted cylinder requests for SCAN and C-SCAN algorithm
+
+int main(int argc, char* argv[])
+{
+	int i, j;
+	if (argc < 2) {
+		cout << "enter initial head position from 0 to 4,999\n";
+		return 0;
+	}
+	int init_head_pos = atoi(argv[1]);
+	if (init_head_pos < 0 || init_head_pos > 4999) {
+		cout << "incorrect number, please try again.\n";
+		return 1;
+	}
+
+	//generate a random series of 1,000 cylinder requests 
+	for (int i = 0;i < NUM_REQUESTS; ++i) {
+		iRequest[i] = (int)(NUM_CYLINDERS * rand() / 32767.0);
+		iRequest_sorted[i] = iRequest[i]; //iRequest_sorted[] will be sorted later
+	}
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+1. FCFS (first-come-first-serve) algorithm. 
+The first request in the queue gets serviced, then the next, and so forth. 
+New requests are put in the end of the queue. */
+
+	int iFCFS_head_movement_counter = 0;
+	int icurr_head_pos = init_head_pos;
+	for (i = 0; i < NUM_REQUESTS; ++i) {
+		if (icurr_head_pos != iRequest[i]) {
+			iFCFS_head_movement_counter++;
+			icurr_head_pos = iRequest[i];
+		}
+	}
+	cout << "FCFS head movements: " << iFCFS_head_movement_counter << "\n";
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+2. SCAN algorithm (also known as elevator algorithm). 
+The head moves from starting position to one end and services all the requests along the way. 
+Then it moves to the other end and services the remaining requests.*/
+
+	int iSCAN_head_movement_counter = 0;
+	
+	//sorting original cylinder requests using buble sort algorithm
+	int swap;
+	for (int c = 0; c < NUM_REQUESTS - 1; c++)
+	{
+		for (int d = 0; d < NUM_REQUESTS - c - 1; d++)
+		{
+			if (iRequest_sorted[d] > iRequest_sorted[d + 1]) /* For decreasing order use "<" */
+			{
+				swap = iRequest_sorted[d];
+				iRequest_sorted[d] = iRequest_sorted[d + 1];
+				iRequest_sorted[d + 1] = swap;
+			}
+		}
+	}
+
+	//find index for first original array element that is equal or less than init_head_pos
+	int start_index;
+	for (i = 0; i < NUM_REQUESTS; ++i) {
+		if (iRequest[i] <= init_head_pos) {
+			start_index = i;
+			break;
+		}
+	}
+	//this is the value of the original array at start_index
+	int start_index_value = iRequest[start_index];
+
+	//find element in the sorted array that is equal to iRequest[start_index]
+	int sorted_start_index;
+	for (i = 0; i < NUM_REQUESTS; ++i) {
+		if (iRequest_sorted[i] == start_index_value) {
+			sorted_start_index = i;
+			break;
+		}
+	}
+
+	icurr_head_pos = init_head_pos;
+	//scan down from sorted_start_index in iRequest_sorted array
+	for (i = sorted_start_index; i >= 0; --i) {
+		if (iRequest_sorted[i] != icurr_head_pos) {
+			iSCAN_head_movement_counter++;
+			icurr_head_pos = iRequest_sorted[i];
+		}
+	}
+	//move head to the begin of the disk, if head is not at the begin yet
+	if (icurr_head_pos != 0) {
+		iSCAN_head_movement_counter++;
+		icurr_head_pos = 0;
+	}
+
+	//scan up from sorted_start_index in iRequest_sorted array
+	for (i = sorted_start_index+1; i < NUM_REQUESTS; ++i) {
+		if (iRequest_sorted[i] != icurr_head_pos) {
+			iSCAN_head_movement_counter++;
+			icurr_head_pos = iRequest_sorted[i];
+		}
+	}
+	cout << "SCAN head movements: " << iSCAN_head_movement_counter << "\n";
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+3. C-SCAN algorithm (also known as circular elevator algorithm). 
+Works similar to the elevator algorithm, except after servicing one side, the head goes to the starting position. 
+The remaining requests are serviced after the return to the starting position. */
+
+	int iCSCAN_head_movement_counter = 0;
+	icurr_head_pos = init_head_pos;
+	//scan down from sorted_start_index in iRequest_sorted array
+	for (i = sorted_start_index; i >= 0; --i) {
+		if (iRequest_sorted[i] != icurr_head_pos) {
+			iCSCAN_head_movement_counter++;
+			icurr_head_pos = iRequest_sorted[i];
+		}
+	}
+	//move head to the begin of the disk, if head is not at the begin yet
+	if (icurr_head_pos != 0) {
+		iCSCAN_head_movement_counter++;
+		icurr_head_pos = 0;
+	}
+
+	//set icurr_head_pos to the end of the sorted array 
+	icurr_head_pos = iRequest_sorted[NUM_REQUESTS-1];
+
+	//scan down from the end of sorted array to sorted_start_index
+	for (i = NUM_REQUESTS-1; i>sorted_start_index; --i) {
+		if (iRequest_sorted[i] != icurr_head_pos) {
+			iCSCAN_head_movement_counter++;
+			icurr_head_pos = iRequest_sorted[i];
+		}
+	}
+	cout << "C-SCAN head movements: " << iCSCAN_head_movement_counter << "\n";
+
+}
+
