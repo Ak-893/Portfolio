@@ -1,0 +1,95 @@
+/*
+Multithread implementation (3 threads).
+Input: numbers through command line (example: 35, 41, 99, 202, 5, 7).
+Output: 1st thread - num average, 2nd thread - max value, 3rd thread - min value.
+*/
+#include <iostream>
+#include <thread>
+#include <stdlib.h>
+#include <conio.h>
+
+using namespace std;
+
+//function prototypes
+void get_mean(double dArray[], int iLen);
+void get_max(double dArray[], int iLen);
+void get_min(double dArray[], int iLen);
+void help(void);
+
+//globals
+double dMean, dMax, dMin, dStd;
+
+int main(int argc, char* argv[])
+{
+	if (argc == 1) {
+		cout << "Command line is empty." << "\n";
+		help();
+		return(1);
+	};
+
+	double* dArray = (double*)calloc(argc - 1, sizeof(double));
+	if (dArray == NULL) {
+		cout << "can't allocate memory for input numbers.";
+		return 3;
+	}
+
+	for (int i = 0; i < argc - 1; ++i) {
+		dArray[i] = atof(argv[i + 1]);
+	}
+
+	// Constructs the new thread and runs it. Does not block execution.
+	thread th1(get_mean, dArray, argc - 1);
+	thread th2(get_max, dArray, argc - 1);
+	thread th3(get_min, dArray, argc - 1);
+
+	// Do other things...
+
+	// Makes the main thread wait for all threads to finish execution, therefore blocks its own execution.
+	th1.join();
+	th2.join();
+	th3.join();
+
+	cout << "mean=" << dMean << "\n";
+	cout << "min=" << dMin << "\n";
+	cout << "max=" << dMax << "\n";
+
+	free(dArray);
+
+	return 0;
+}
+
+// The function get_mean gets executed by thread1.
+void get_mean(double dArray[], int iN)
+{
+	for (int i = 0; i < iN; ++i) {
+		dMean += dArray[i];
+	}
+
+	dMean /= iN;
+	return;
+}
+
+// The function get_max gets executed by thread2.
+void get_max(double dArray[], int iN)
+{
+	dMax = dArray[0];
+	for (int i = 1; i < iN; ++i) {
+		if (dMax < dArray[i]) dMax = dArray[i];
+	}
+
+	return;
+}
+// The function get_min gets executed by thread3.
+void get_min(double dArray[], int iN)
+{
+	dMin = dArray[0];
+	for (int i = 1; i < iN; ++i) {
+		if (dMin > dArray[i]) dMin = dArray[i];
+	}
+	return;
+}
+
+void help(void)
+{
+	cout << "Usage: test.exe Num1, Num2,...NumN\n";
+}
